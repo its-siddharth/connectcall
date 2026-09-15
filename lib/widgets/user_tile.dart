@@ -1,15 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:zego_uikit/zego_uikit.dart';
+import 'package:zego_uikit_prebuilt_call/zego_uikit_prebuilt_call.dart';
 import '../core/theme/app_colors.dart';
 import '../models/user_model.dart';
 import '../models/call_model.dart';
 import 'user_avatar.dart';
 
-/// Tile shown in the contacts list
+/// Tile shown in the contacts list.
+///
+/// When ZegoCloud is configured the call buttons use
+/// [ZegoSendCallInvitationButton] so the callee's device receives a real
+/// push invitation via the signalling plugin.
+/// When Zego is not configured (mock mode) the plain [onAudioCall] /
+/// [onVideoCall] callbacks are used instead.
 class UserTile extends StatelessWidget {
   final UserModel user;
+
+  /// Called in mock mode (no Zego credentials). Ignored when Zego is active.
   final VoidCallback? onAudioCall;
+
+  /// Called in mock mode (no Zego credentials). Ignored when Zego is active.
   final VoidCallback? onVideoCall;
+
   final VoidCallback? onTap;
+
+  /// The logged-in user's Zego user ID — required for the invitation button.
+  final String? currentUserId;
+
+  /// The logged-in user's display name — required for the invitation button.
+  final String? currentUserName;
 
   const UserTile({
     super.key,
@@ -17,6 +36,8 @@ class UserTile extends StatelessWidget {
     this.onAudioCall,
     this.onVideoCall,
     this.onTap,
+    this.currentUserId,
+    this.currentUserName,
   });
 
   @override
@@ -57,24 +78,107 @@ class UserTile extends StatelessWidget {
             // Call buttons
             Row(
               children: [
-                _CallIconButton(
-                  icon: Icons.call_outlined,
-                  color: AppColors.primary,
-                  onTap: onAudioCall,
-                  tooltip: 'Audio Call',
-                ),
+                _buildAudioButton(context),
                 const SizedBox(width: 4),
-                _CallIconButton(
-                  icon: Icons.videocam_outlined,
-                  color: AppColors.secondary,
-                  onTap: onVideoCall,
-                  tooltip: 'Video Call',
-                ),
+                _buildVideoButton(context),
               ],
             ),
           ],
         ),
       ),
+    );
+  }
+
+  // ── Button builders ──────────────────────────────────────────────────────
+
+  Widget _buildAudioButton(BuildContext context) {
+    // Use Zego invitation button if credentials are available and we have the
+    // current user's identity.
+    if (_zegoReady) {
+      return _ZegoCallButtonWrapper(
+        icon: Icons.call_outlined,
+        color: AppColors.primary,
+        tooltip: 'Audio Call',
+        child: ZegoSendCallInvitationButton(
+          invitees: [ZegoUIKitUser(id: user.id, name: user.name)],
+          isVideoCall: false,
+          resourceID: 'ConnectCall',
+          buttonSize: const Size(36, 36),
+          iconSize: const Size(20, 20),
+          icon: ButtonIcon(
+            icon: Icon(Icons.call_outlined, color: AppColors.primary, size: 20),
+            backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+          ),
+        ),
+      );
+    }
+    // Fallback: mock mode
+    return _CallIconButton(
+      icon: Icons.call_outlined,
+      color: AppColors.primary,
+      onTap: onAudioCall,
+      tooltip: 'Audio Call',
+    );
+  }
+
+  Widget _buildVideoButton(BuildContext context) {
+    if (_zegoReady) {
+      return _ZegoCallButtonWrapper(
+        icon: Icons.videocam_outlined,
+        color: AppColors.secondary,
+        tooltip: 'Video Call',
+        child: ZegoSendCallInvitationButton(
+          invitees: [ZegoUIKitUser(id: user.id, name: user.name)],
+          isVideoCall: true,
+          resourceID: 'ConnectCall',
+          buttonSize: const Size(36, 36),
+          iconSize: const Size(20, 20),
+          icon: ButtonIcon(
+            icon: Icon(Icons.videocam_outlined,
+                color: AppColors.secondary, size: 20),
+            backgroundColor: AppColors.secondary.withValues(alpha: 0.1),
+          ),
+        ),
+      );
+    }
+    return _CallIconButton(
+      icon: Icons.videocam_outlined,
+      color: AppColors.secondary,
+      onTap: onVideoCall,
+      tooltip: 'Video Call',
+    );
+  }
+
+  /// True when Zego is configured and we have the caller's identity.
+  bool get _zegoReady =>
+      currentUserId != null &&
+      currentUserId!.isNotEmpty &&
+      currentUserName != null &&
+      currentUserName!.isNotEmpty;
+}
+
+// ── Internal widgets ────────────────────────────────────────────────────────
+
+/// Wraps a Zego button in a fixed-size tooltip container so it matches the
+/// look of the plain _CallIconButton.
+class _ZegoCallButtonWrapper extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String tooltip;
+  final Widget child;
+
+  const _ZegoCallButtonWrapper({
+    required this.icon,
+    required this.color,
+    required this.tooltip,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: SizedBox(width: 36, height: 36, child: child),
     );
   }
 }
@@ -111,6 +215,8 @@ class _CallIconButton extends StatelessWidget {
     );
   }
 }
+
+// ── Call history tile ────────────────────────────────────────────────────────
 
 /// Tile for call history
 class CallHistoryTile extends StatelessWidget {
@@ -162,7 +268,9 @@ class CallHistoryTile extends StatelessWidget {
                 Row(
                   children: [
                     Icon(
-                      call.isVideo ? Icons.videocam_outlined : Icons.call_outlined,
+                      call.isVideo
+                          ? Icons.videocam_outlined
+                          : Icons.call_outlined,
                       size: 13,
                       color: AppColors.lightTextMuted,
                     ),

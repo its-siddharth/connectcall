@@ -9,7 +9,6 @@ import '../../models/user_model.dart';
 import '../../models/call_model.dart';
 import '../../widgets/user_tile.dart';
 import '../../widgets/user_avatar.dart';
-import '../call/incoming_call_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -36,51 +35,46 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final calling = context.watch<CallingService>();
+    return _buildScaffold(context);
+  }
 
-    return Stack(
-      children: [
-        Scaffold(
-          body: IndexedStack(
-            index: _selectedIndex,
-            children: const [
-              _HomeTab(),
-              _ContactsTab(),
-              _CallsTab(),
-              _ProfileTab(),
-            ],
+  Widget _buildScaffold(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: const [
+          _HomeTab(),
+          _ContactsTab(),
+          _CallsTab(),
+          _ProfileTab(),
+        ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onTabTapped,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Home',
           ),
-          bottomNavigationBar: BottomNavigationBar(
-            currentIndex: _selectedIndex,
-            onTap: _onTabTapped,
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home_outlined),
-                activeIcon: Icon(Icons.home),
-                label: 'Home',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.contacts_outlined),
-                activeIcon: Icon(Icons.contacts),
-                label: 'Contacts',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.call_outlined),
-                activeIcon: Icon(Icons.call),
-                label: 'Calls',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person_outline),
-                activeIcon: Icon(Icons.person),
-                label: 'Profile',
-              ),
-            ],
+          BottomNavigationBarItem(
+            icon: Icon(Icons.contacts_outlined),
+            activeIcon: Icon(Icons.contacts),
+            label: 'Contacts',
           ),
-        ),
-        // Incoming call overlay
-        if (calling.hasIncomingCall && calling.incomingCall != null)
-          IncomingCallScreen(call: calling.incomingCall!),
-      ],
+          BottomNavigationBarItem(
+            icon: Icon(Icons.call_outlined),
+            activeIcon: Icon(Icons.call),
+            label: 'Calls',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+      ),
     );
   }
 }
@@ -147,6 +141,8 @@ class _HomeTab extends StatelessWidget {
                     final user = users.users[i];
                     return UserTile(
                       user: user,
+                      currentUserId: currentUser?.id,
+                      currentUserName: currentUser?.name,
                       onAudioCall: () => _startCall(ctx, currentUser!, user, CallType.audio, calling),
                       onVideoCall: () => _startCall(ctx, currentUser!, user, CallType.video, calling),
                       onTap: () => Navigator.of(ctx).pushNamed(
@@ -322,14 +318,16 @@ class _ContactsTab extends StatelessWidget {
                       itemBuilder: (ctx, i) {
                         final user = users.users[i];
                         return UserTile(
-                          user: user,
-                          onAudioCall: () => _startCall(ctx, currentUser!, user, CallType.audio, calling),
-                          onVideoCall: () => _startCall(ctx, currentUser!, user, CallType.video, calling),
-                          onTap: () => Navigator.of(ctx).pushNamed(
-                            '/user-profile',
-                            arguments: user,
-                          ),
-                        );
+                           user: user,
+                           currentUserId: currentUser?.id,
+                           currentUserName: currentUser?.name,
+                           onAudioCall: () => _startCall(ctx, currentUser!, user, CallType.audio, calling),
+                           onVideoCall: () => _startCall(ctx, currentUser!, user, CallType.video, calling),
+                           onTap: () => Navigator.of(ctx).pushNamed(
+                             '/user-profile',
+                             arguments: user,
+                           ),
+                         );
                       },
                     ),
     );

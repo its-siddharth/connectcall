@@ -143,8 +143,11 @@ class _SearchScreenState extends State<SearchScreen> {
                       const Divider(height: 1, indent: 80),
                   itemBuilder: (ctx, i) {
                     final user = results[i];
+                    final currentUser = context.read<AuthProvider>().currentUser;
                     return UserTile(
                       user: user,
+                      currentUserId: currentUser?.id,
+                      currentUserName: currentUser?.name,
                       onAudioCall: () => _startCall(ctx, user, CallType.audio),
                       onVideoCall: () => _startCall(ctx, user, CallType.video),
                       onTap: () => Navigator.of(ctx).pushNamed(

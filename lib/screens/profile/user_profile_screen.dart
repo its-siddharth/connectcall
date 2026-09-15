@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:zego_uikit/zego_uikit.dart';
+import 'package:zego_uikit_prebuilt_call/zego_uikit_prebuilt_call.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/user_model.dart';
 import '../../models/call_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/calling_service.dart';
+import '../../services/zego_service.dart';
 import '../../widgets/user_avatar.dart';
 import '../../widgets/common_button.dart';
 
@@ -47,41 +50,51 @@ class UserProfileScreen extends StatelessWidget {
             const SizedBox(height: 8),
             _StatusChip(status: user.status),
             const SizedBox(height: 32),
-            // Call buttons
+            // Call buttons — use Zego invitation buttons when configured
             if (currentUser != null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Row(
                   children: [
                     Expanded(
-                      child: CommonButton(
-                        label: 'Audio Call',
-                        icon: Icons.call_outlined,
-                        onPressed: () => _startCall(
-                          context,
-                          currentUser,
-                          user,
-                          CallType.audio,
-                          calling,
-                        ),
-                      ),
+                      child: ZegoService.isConfigured
+                          ? _ZegoProfileCallButton(
+                              callee: user,
+                              isVideo: false,
+                            )
+                          : CommonButton(
+                              label: 'Audio Call',
+                              icon: Icons.call_outlined,
+                              onPressed: () => _startCall(
+                                context,
+                                currentUser,
+                                user,
+                                CallType.audio,
+                                calling,
+                              ),
+                            ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: CommonButton(
-                        label: 'Video Call',
-                        icon: Icons.videocam_outlined,
-                        onPressed: () => _startCall(
-                          context,
-                          currentUser,
-                          user,
-                          CallType.video,
-                          calling,
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.secondary,
-                        ),
-                      ),
+                      child: ZegoService.isConfigured
+                          ? _ZegoProfileCallButton(
+                              callee: user,
+                              isVideo: true,
+                            )
+                          : CommonButton(
+                              label: 'Video Call',
+                              icon: Icons.videocam_outlined,
+                              onPressed: () => _startCall(
+                                context,
+                                currentUser,
+                                user,
+                                CallType.video,
+                                calling,
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.secondary,
+                              ),
+                            ),
                     ),
                   ],
                 ),
@@ -122,6 +135,49 @@ class UserProfileScreen extends StatelessWidget {
         'remoteUser': callee,
       });
     }
+  }
+}
+
+/// Full-width styled button that wraps [ZegoSendCallInvitationButton].
+class _ZegoProfileCallButton extends StatelessWidget {
+  final UserModel callee;
+  final bool isVideo;
+  const _ZegoProfileCallButton({required this.callee, required this.isVideo});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isVideo ? AppColors.secondary : AppColors.primary;
+    final label = isVideo ? 'Video Call' : 'Audio Call';
+    final icon = isVideo ? Icons.videocam_outlined : Icons.call_outlined;
+
+    return SizedBox(
+      height: 48,
+      child: ZegoSendCallInvitationButton(
+        invitees: [ZegoUIKitUser(id: callee.id, name: callee.name)],
+        isVideoCall: isVideo,
+        resourceID: 'ConnectCall',
+        buttonSize: const Size(double.infinity, 48),
+        iconSize: const Size(20, 20),
+        icon: ButtonIcon(
+          icon: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: color,
+        ),
+      ),
+    );
   }
 }
 

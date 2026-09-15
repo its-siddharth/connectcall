@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:zego_uikit_prebuilt_call/zego_uikit_prebuilt_call.dart';
 import 'core/theme/app_theme.dart';
 import 'core/utils/storage_service.dart';
 import 'providers/auth_provider.dart';
@@ -21,6 +22,11 @@ import 'models/call_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Register our navigator key with Zego BEFORE runApp so that the
+  // invitation service can push the incoming-call overlay on any device.
+  ZegoUIKitPrebuiltCallInvitationService()
+      .setNavigatorKey(AuthProvider.navigatorKey);
 
   final storage = await StorageService.getInstance();
 
